@@ -3,8 +3,8 @@
 #include "esp_camera.h"
 #include "platio.h"
 
-#define LOCAL false
 #define button 2
+#define FLASH false
 
 //Configuração da rede WiFi
 const char *ssid = "VIVO-70D4";
@@ -12,7 +12,6 @@ const char *password = "aNU3497933";
 
 WiFiClient client;
 PlatIO platio;
-String response;
 
 // Configuração do modelo de câmera (CAMERA_MODEL_AI_THINKER)
 #define PWDN_GPIO_hex_color 32
@@ -37,6 +36,7 @@ void setup()
   Serial.begin(115200);
 
   pinMode(button, INPUT_PULLUP);
+  pinMode(4, OUTPUT);
 
   // Configuração da câmetra
   camera_config_t config;
@@ -61,7 +61,7 @@ void setup()
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
   config.frame_size = FRAMESIZE_SVGA;
-  config.jpeg_quality = 10;
+  config.jpeg_quality = 5;
   config.fb_count = 2;
 
   // Conexão WiFi
@@ -78,10 +78,12 @@ void setup()
   // platio.begin(client, api_address, port, mode)
   // Para operar em localhost -> mode = true
   // Para operar online -> mode = false
-  if (LOCAL)
+  if (false)
     platio.begin(client, "192.168.15.5", 4000, true);
   else
-    platio.begin(client, "godoo-cam.herokuapp.com", 80, false);
+    // site: esp-cam-iot.web.app
+    // platio.begin(client, "godoo-cam.herokuapp.com", 80, false);
+    platio.begin(client, "d5e731559bdc.ngrok.io", 80, false);
 
   // Inicialização da câmera
   // Deve ser a última etapa da configuração da ESP para evitar conflitos de memória RAM
@@ -92,18 +94,22 @@ void setup()
     Serial.printf("Camera init failed with error 0x%x", err);
     return;
   }
-
-  // Aloca espaço para a string que receberá respostas da biblioteca
-  // Com isso, evitamos desfragmentação de memória para alocar e realocar a string a cada nova resposta
-  // Alocação básica de 8 bytes é mais do que o suficiente para esse exemplo
-  response.reserve(8);
 }
 
 void sendPhoto()
 {
   // Realiza captura de imagem
+
+  if(FLASH) digitalWrite(4, HIGH);
+
   camera_fb_t *fb = NULL;
   fb = esp_camera_fb_get();
+
+  if(FLASH)
+  {
+    delay(200);
+    digitalWrite(4, LOW);
+  }
 
   // Verifica integridade da captura
   if (!fb)
@@ -120,12 +126,10 @@ void sendPhoto()
     // Realiza envio da imagem para a API através da biblioteca PlatIO
 
     // Envio realizado no formato: platio.upload(api_endpoint, photo_buffer, photo_lenght)
-    // Teoricamente, basta alterar o endpoint para o mesmo da API utilizada
-    // O endereço já foi configurado previamente na inicialização da biblioteca
-    // Assim, não seria necessário realizar mais alterações na biblioteca em si
-    // E se essa for a única função utilizada, é possível limpar a biblioteca PlatIO para apenas
-    // manter a funcionalidade de envio de imagem, reduzindo drasticamente o tamanho da biblioteca
-    platio.upload("/api/pushphoto?path=camera/live", fb->buf, fb->len);
+    platio.upload("/sensorimages/", fb->buf, fb->len);
+    // platio.upload("/arduino", fb->buf, fb->len);
+    // platio.upload("/2b0c4574-ac56-420a-bbe2-304e62d7d2ca", fb->buf, fb->len);
+
   }
 
   Serial.println(F("Ciclo de captura completo"));
@@ -143,10 +147,8 @@ void loop()
   if(!digitalRead(button))
   {
     delay(500);
-    Serial.println(F("Disparo de sensor. Tirar foto agora"));
+    Serial.println(F("\nDisparo de sensor. Tirar foto agora"));
     sendPhoto();
     Serial.println(F("Ciclo de sensor completo"));
   }
-
-  // delay(1000);
 }

@@ -26,8 +26,8 @@ void PlatIO::begin(Client &client, const char serverName[], const int serverPort
   else
   {
     // Online Mode
-    // https://plat-io.herokuapp.com
-    strcat(this->targetUrl, "https://");
+    // https://domain.com
+    strcat(this->targetUrl, "http://");
     strcat(this->targetUrl, this->serverName);
   }
 }
@@ -35,7 +35,8 @@ void PlatIO::begin(Client &client, const char serverName[], const int serverPort
 // Realiza upload de um arquivo (por enquanto configurado para foto apenas)
 int PlatIO::upload(const char path[], uint8_t *buf, size_t len)
 {
-  char url[80] = {0};
+  // O tamanho alocado deve ser capaz de conter a url completa de disparo da requisição url
+  char url[120] = {0};
 
   strcat(url, this->targetUrl);
   strcat(url, path);
@@ -50,9 +51,9 @@ int PlatIO::upload(const char path[], uint8_t *buf, size_t len)
 
   if (this->client->connect(this->serverName, this->serverPort))
   {
-    Serial.println("Connection successful!");
+    Serial.println(F("Connection successful!"));
 
-    String head = "--EspCamIOT\r\nContent-Disposition: form-data; name=\"imageFile\"; filename=\"esp32-cam.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n";
+    String head = "--EspCamIOT\r\nContent-Disposition: form-data; name=\"foto\"; filename=\"esp32-cam.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n";
     String tail = "\r\n--EspCamIOT--\r\n";
 
     uint16_t imageLen = len;
@@ -62,7 +63,7 @@ int PlatIO::upload(const char path[], uint8_t *buf, size_t len)
     this->client->println("POST " + String(url) + " HTTP/1.1");
     this->client->println("Host: " + String(this->serverName));
     this->client->println("Content-Length: " + String(totalLen));
-    this->client->println("Content-Type: multipart/form-data; boundary=EspCamIOT");
+    this->client->println("Content-Type:  multipart/form-data; boundary=EspCamIOT");
     this->client->println();
     this->client->print(head);
 
@@ -81,11 +82,12 @@ int PlatIO::upload(const char path[], uint8_t *buf, size_t len)
         this->client->write(fbBuf, remainder);
       }
     }
+
     this->client->print(tail);
   }
   else
   {
-    Serial.println("Connection Failure!");
+    Serial.println(F("Connection Failure!"));
   }
   return 0;
 }

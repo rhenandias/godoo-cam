@@ -16,8 +16,8 @@ class PlatIO {
     int upload(const char path[], uint8_t *buf, size_t len);
 
   private:
-    char serverName[70];
-    char targetUrl[70];
+    char serverName[120];
+    char targetUrl[120];
     int serverPort = 0;
     bool mode;
 
