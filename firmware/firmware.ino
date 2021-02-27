@@ -124,6 +124,8 @@ void sendPhoto()
     Serial.println(fb->len);
 
     // Realiza envio da imagem para a API através da biblioteca PlatIO
+    // Endpoint para utilização com o site esp-cam-iot
+    // platio.upload("/pushphoto", fb->buf, fb->len);
 
     // Envio realizado no formato: platio.upload(api_endpoint, photo_buffer, photo_lenght)
     platio.upload("/sensorimages/", fb->buf, fb->len);
